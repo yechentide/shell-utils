@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+set -eu
+
+#######################################
+# 作用:
+# 参数:
+#   $1: message type
+#   $2: message
+# 输出:
+#   带颜色的字符串
+#######################################
+function print_usage() {
+    echo 'Usage:'
+    echo '    logger -p [type] [message...]'
+    echo "    -p prefixed output"
+    echo '    [type] = info / warn / ok / error / tip / debug'
+    echo ''
+    echo "Examples:"
+    echo "    logger info 'hello world!'"
+}
+
+#######################################
+# flags
+
+declare add_prefix='false'
+declare option
+while getopts ph option; do
+    case $option in
+        p) add_prefix='true' ;;
+        h) print_usage; exit 0; ;;
+        *) print_usage; exit 1; ;;
+    esac
+done
+shift $((OPTIND - 1))
+
+#######################################
+
+utils_dir="$(cd "$(dirname "$0")"; pwd)"
+declare -r utils_dir
+if echo "$PATH" | grep -v "$utils_dir" &> /dev/null; then
+    export PATH="$utils_dir:$PATH"
+fi
+
+if [[ $# == 0 ]] || [[ $# == 1 && ! -p /dev/stdin ]]; then
+    color_print -np 'error' '参数数量错误.'
+    print_usage
+    exit 1;
+fi
+
+if [[ -p /dev/stdin ]]; then    # <-- make pipe work
+    str=$(cat -)                # <-- make pipe work
+else
+    str="${*:2}"
+fi
+declare -r str
+
+color_print "$1" "[$(date "+%Y/%m/%d %H:%M:%S")] "
+if [[ $add_prefix == 'true' ]]; then
+    color_print -np "$1" "$str"
+else
+    color_print -n "$1" "$str"
+fi

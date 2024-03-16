@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+set -eu
+
+#######################################
+# 作用: 输出和终端窗口一样长的分割线
+# 参数:
+#   $1: 充当分割线的1字节字符
+# 输出:
+#   ==============
+#######################################
+function print_usage() {
+    echo 'Usage:'
+    echo '    count_down [character]'
+    echo ''
+    echo "Examples:"
+    echo "    count_down '~'"
+}
+
+#######################################
+# flags
+
+declare option
+while getopts h option; do
+    case $option in
+        h) print_usage; exit 0; ;;
+        *) print_usage; exit 1; ;;
+    esac
+done
+shift $((OPTIND - 1))
+
+#######################################
+
+if [[ $# == 0 ]]; then
+    eval "printf '%.0s'= {1..$(tput cols)}"     # 输出: 和窗口一样长的======
+else
+    eval "printf '%.0s'$1 {1..$((  $(tput cols) / ${#1}  ))}"
+fi
+echo ''

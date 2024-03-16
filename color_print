@@ -1,0 +1,95 @@
+#!/usr/bin/env bash
+set -eu
+
+#######################################
+# 作用: 给输出上色
+# 参数:
+#   -n: 输出不改行
+#   -p: 禁止输出[INFO]之类的前缀
+#   $1: 颜色代码(0~255) or 特定的字符串
+#   $2: 需要改颜色的字符串
+# 输出:
+#   带颜色的字符串
+#######################################
+function print_usage() {
+    echo 'Usage:'
+    echo '    color_print -n -p [color] [message...]'
+    echo "    -n new line"
+    echo "    -p prefixed output"
+    echo '    [color] = 0~255 / info / warn / ok / error / tip / debug'
+    echo ''
+    echo "Examples:"
+    echo "    color_print info 'hello world!'"
+}
+
+#######################################
+# flags
+
+declare add_new_line='false'
+declare add_prefix='false'
+declare option
+while getopts nph option; do
+    case $option in
+        n) add_new_line='true' ;;
+        p) add_prefix='true' ;;
+        h) print_usage; exit 0; ;;
+        *) print_usage; exit 1; ;;
+    esac
+done
+shift $((OPTIND - 1))
+
+#######################################
+# constants
+
+esc=$(printf "\033")    # 更改输出颜色用的前缀
+reset="${esc}[0m"       # 重置所有颜色，字体设定
+declare -r esc
+declare -r reset
+
+export ST_COLOR_INFO=33
+export ST_COLOR_WARN=190
+export ST_COLOR_OK=46
+export ST_COLOR_ERROR=196
+export ST_COLOR_TIP=215
+export ST_COLOR_DEBUG=141
+
+#######################################
+
+if [[ $# == 0 ]] || [[ $# == 1 && ! -p /dev/stdin ]]; then
+    echo "${esc}[1;38;5;9m[Error] 参数数量错误.${esc}[m"
+    print_usage
+    exit 1;
+fi
+
+if [[ -p /dev/stdin ]]; then    # <-- make pipe work
+    str=$(cat -)                # <-- make pipe work
+else
+    str="${*:2}"
+fi
+declare -r str
+
+declare prefix=''
+declare color=''
+case $1 in
+'info')     # 蓝
+    color=$ST_COLOR_INFO; prefix='[INFO] '; ;;
+'warn')     # 黄
+    color=$ST_COLOR_WARN; prefix='[WARN] '; ;;
+'ok')       # 绿
+    color=$ST_COLOR_OK; prefix='[OK] '; ;;
+'error')    # 红
+    color=$ST_COLOR_ERROR; prefix='[ERROR] '; ;;
+'tip')      # 橙
+    color=$ST_COLOR_TIP; prefix='[TIP] '; ;;
+'debug')    # 紫
+    color=$ST_COLOR_DEBUG; prefix='[debug] '; ;;
+*)
+    color=$1; ;;
+esac
+
+if [[ $add_prefix != 'true' ]]; then prefix=''; fi
+if [[ $add_new_line == 'true' ]]; then
+    echo "${esc}[38;5;${color}m${prefix}${str}${reset}"
+else
+    echo -n "${esc}[38;5;${color}m${prefix}${str}${reset}"
+fi
